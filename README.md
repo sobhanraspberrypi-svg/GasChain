@@ -99,7 +99,8 @@ gaschain/
 - 🏗️ Pipeline investment signal (demand heatmaps)
 
 ---
-
+## Live Demo
+Open `gaschain_demo.html` in any browser — no installation required.
 ## Tech Stack
 
 | Layer | Technology |

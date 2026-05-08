@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GasChain — Live Demo</title>
+<style>
+:root {
+  --teal: #0A8080; --teal-lt: #0FB4B4; --teal-dim: #E0F4F4;
+  --navy: #0D1B2A; --navy-mid: #1A3344;
+  --amber: #D97706; --amb-lt: #FEF3C7;
+  --green: #15803D; --grn-lt: #DCFCE7;
+  --red: #B91C1C; --red-lt: #FEF2F2;
+  --gray: #64748B; --gray-lt: #F1F5F9;
+  --border: #E2EBF0; --white: #fff; --off: #F4F8FA;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--off); color: var(--navy); }
+
+/* HEADER */
+.header { background: var(--navy); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+.logo span { color: var(--teal-lt); }
+.header-sub { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; font-family: monospace; }
+.live-badge { background: #22C55E; color: #fff; font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 12px; letter-spacing: 1px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
+
+/* TABS */
+.tabs { display: flex; background: var(--white); border-bottom: 1px solid var(--border); padding: 0 24px; overflow-x: auto; }
+.tab { padding: 12px 18px; font-size: 13px; font-weight: 500; color: var(--gray); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all .15s; }
+.tab.on { color: var(--teal); border-bottom-color: var(--teal); }
+.tab:hover { color: var(--navy); }
+
+.main { max-width: 1100px; margin: 0 auto; padding: 20px 24px; }
+.pane { display: none; } .pane.on { display: block; }
+
+/* KPI ROW */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.kpi { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; border-top: 3px solid var(--teal); }
+.kpi.amber { border-top-color: var(--amber); }
+.kpi.red { border-top-color: var(--red); }
+.kpi.green { border-top-color: var(--green); }
+.kl { font-size: 11px; color: var(--gray); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .4px; }
+.kv { font-size: 24px; font-weight: 700; font-family: monospace; }
+.ks { font-size: 11px; color: #94A3B8; margin-top: 2px; }
+
+/* CARDS */
+.card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 14px; }
+.card-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+.badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 8px; }
+.bg { background: var(--grn-lt); color: var(--green); }
+.br { background: var(--red-lt); color: var(--red); }
+.ba { background: var(--amb-lt); color: var(--amber); }
+.bt { background: var(--teal-dim); color: var(--teal); }
+
+/* TRANSACTION SIMULATOR */
+.sim-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 11px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: .4px; }
+.field select, .field input { border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; background: var(--white); font-family: inherit; color: var(--navy); }
+.field select:focus, .field input:focus { outline: none; border-color: var(--teal); }
+.sim-btn { background: var(--teal); color: #fff; border: none; border-radius: 8px; padding: 11px 24px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 4px; transition: background .15s; font-family: inherit; }
+.sim-btn:hover { background: var(--teal-lt); }
+.sim-btn:active { transform: scale(.98); }
+
+/* RESULT */
+.result { display: none; border-radius: 10px; padding: 18px; margin-top: 12px; border: 1.5px solid; }
+.result.approved { background: var(--grn-lt); border-color: #86EFAC; }
+.result.blocked { background: var(--red-lt); border-color: #FECACA; }
+.result-header { font-size: 16px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.result-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.result-row:last-child { border: none; }
+.flag-list { margin-top: 8px; }
+.flag { font-size: 11px; padding: 4px 10px; border-radius: 6px; background: rgba(0,0,0,0.07); margin: 3px 0; display: block; font-family: monospace; }
+
+/* AGENCY TABLE */
+.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tbl th { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); font-weight: 600; color: var(--gray); font-size: 11px; }
+.tbl td { padding: 9px 10px; border-bottom: 1px solid var(--gray-lt); }
+.tbl tr:last-child td { border: none; }
+.tbl tr:hover td { background: var(--gray-lt); }
+.pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
+.p-ok { background: var(--grn-lt); color: var(--green); }
+.p-warn { background: var(--amb-lt); color: var(--amber); }
+.p-flag { background: var(--red-lt); color: var(--red); }
+
+/* SCORE BAR */
+.score-wrap { display: flex; align-items: center; gap: 8px; }
+.score-track { flex: 1; height: 6px; background: var(--gray-lt); border-radius: 10px; overflow: hidden; }
+.score-fill { height: 100%; border-radius: 10px; transition: width .5s; }
+.score-num { font-size: 11px; font-weight: 700; width: 30px; text-align: right; font-family: monospace; }
+
+/* LOG */
+.log { background: var(--navy); border-radius: 8px; padding: 14px; font-family: monospace; font-size: 12px; color: #C9F0EE; max-height: 280px; overflow-y: auto; }
+.log-entry { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.log-entry:last-child { border: none; }
+.log-time { color: rgba(255,255,255,0.35); margin-right: 8px; }
+.log-ok { color: #4ADE80; }
+.log-warn { color: #FCD34D; }
+.log-err { color: #F87171; }
+
+/* CBG */
+.cbg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.cbg-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: var(--white); }
+.cbg-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.cbg-type { font-size: 10px; color: var(--gray); margin-bottom: 8px; }
+.cbg-price { font-size: 18px; font-weight: 700; color: var(--teal); font-family: monospace; }
+.cbg-cap { font-size: 11px; color: var(--gray); }
+.cbg-avail { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; margin-top: 6px; display: inline-block; }
+.av-ok { background: var(--grn-lt); color: var(--green); }
+.av-low { background: var(--amb-lt); color: var(--amber); }
+
+/* PROGRESS */
+.prog { margin-bottom: 10px; }
+.prog-head { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+.prog-lbl { color: var(--gray); font-weight: 500; }
+.prog-val { font-weight: 700; font-family: monospace; }
+.prog-track { height: 7px; background: var(--gray-lt); border-radius: 10px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 10px; transition: width .6s; }
+
+/* STP TABLE */
+.stp-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; background: var(--white); margin-bottom: 8px; }
+.stp-name { font-size: 13px; font-weight: 600; }
+.stp-meta { font-size: 11px; color: var(--gray); margin-top: 2px; }
+.stp-nums { display: flex; gap: 16px; margin-top: 10px; }
+.stp-num { font-size: 11px; }
+.stp-num span { font-size: 16px; font-weight: 700; font-family: monospace; display: block; }
+
+@media (max-width: 600px) {
+  .sim-form { grid-template-columns: 1fr; }
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">Gas<span>Chain</span></div>
+    <div class="header-sub">India's National Gas Distribution OS · Pre-MVP Demo v0.1</div>
+  </div>
+  <div class="live-badge">LIVE DEMO</div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" onclick="sw('sim',this)">🔍 Transaction Simulator</div>
+  <div class="tab" onclick="sw('agencies',this)">🏪 Agency Monitor</div>
+  <div class="tab" onclick="sw('cbg',this)">🌿 CBG Marketplace</div>
+  <div class="tab" onclick="sw('stp',this)">🏭 STP Biogas</div>
+  <div class="tab" onclick="sw('twin',this)">🗺️ Digital Twin</div>
+  <div class="tab" onclick="sw('log',this)">📋 Live Log</div>
+</div>
+
+<div class="main">
+
+<!-- ══ TRANSACTION SIMULATOR ══ -->
+<div id="pane-sim" class="pane on">
+  <div class="kpi-row">
+    <div class="kpi green"><div class="kl">Approved today</div><div class="kv" id="cnt-approved">0</div><div class="ks">transactions</div></div>
+    <div class="kpi red"><div class="kl">Blocked today</div><div class="kv" id="cnt-blocked">0</div><div class="ks">fraud attempts</div></div>
+    <div class="kpi amber"><div class="kl">Anomalies flagged</div><div class="kv" id="cnt-flags">0</div><div class="ks">under review</div></div>
+    <div class="kpi"><div class="kl">Subsidy protected</div><div class="kv" id="cnt-subsidy">₹0</div><div class="ks">this session</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cylinder dispensing — verify transaction <span class="badge bt">Aadhar + QR</span></div>
+
+    <div class="sim-form">
+      <div class="field">
+        <label>Consumer type</label>
+        <select id="consumer-type">
+          <option value="normal">Normal household — Jayanagar</option>
+          <option value="quota">Over-quota attempt (2/2 used)</option>
+          <option value="duplicate">Duplicate Aadhar connection</option>
+          <option value="commercial">Commercial diversion attempt</option>
+          <option value="hoarding">Agency hoarding pattern</option>
+          <option value="ghost">Ghost cylinder detected</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Agency</label>
+        <select id="agency-select">
+          <option value="clean">Sri Venkatesh LPG — Jayanagar (score: 0.08)</option>
+          <option value="watch">Majestic Gas Point — Chickpet (score: 0.71)</option>
+          <option value="flagged">City Gas Shoppe — RT Nagar (score: 1.94)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Cylinder type</label>
+        <select id="cyl-type">
+          <option value="lpg_domestic">LPG Domestic 14.2 kg — ₹920</option>
+          <option value="lpg_commercial">LPG Commercial 19 kg — ₹3,152</option>
+          <option value="cbg">CBG 14 kg — ₹756</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Consumer Aadhar (masked)</label>
+        <input type="text" id="aadhar-input" value="XXXX-XXXX-7391" placeholder="Enter last 4 digits">
+      </div>
+    </div>
+
+    <button class="sim-btn" onclick="runCheck()">▶ Verify Transaction — Scan & Check</button>
+
+    <div class="result" id="result-box">
+      <div class="result-header" id="result-icon"></div>
+      <div id="result-details"></div>
+      <div class="flag-list" id="result-flags"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">How anomaly detection works</div>
+    <div style="font-size:12px;color:var(--gray);line-height:1.7">
+      Every cylinder dispensing triggers <strong>7 parallel checks</strong> in real time:
+      <br><br>
+      <code style="background:var(--gray-lt);padding:2px 6px;border-radius:4px">Quota check</code> → Has consumer used their monthly allowance?
+      <br>
+      <code style="background:var(--gray-lt);padding:2px 6px;border-radius:4px">Aadhar dedup</code> → Is this Aadhar linked to multiple active connections?
+      <br>
+      <code style="background:var(--gray-lt);padding:2px 6px;border-radius:4px">Dispense rate</code> → Is this agency dispensing 2σ above their own baseline?
+      <br>
+      <code style="background:var(--gray-lt);padding:2px 6px;border-radius:4px">Scan compliance</code> → Is the agency skipping Aadhar OTP verification?
+      <br>
+      <code style="background:var(--gray-lt);padding:2px 6px;border-radius:4px">Commercial diversion</code> → Is a domestic consumer receiving at a commercial address?
+      <br>
+      <code style="background:var(--gray-lt);padding:2px 6px;border-radius:4px">Time pattern</code> → Is bulk dispensing happening outside business hours?
+      <br>
+      <code style="background:var(--gray-lt);padding:2px 6px;border-radius:4px">Cylinder journey</code> → Has this cylinder appeared at multiple locations impossibly fast?
+      <br><br>
+      Anomaly score &lt;0.5 = Clean &nbsp;|&nbsp; 0.5–1.0 = Watch &nbsp;|&nbsp; 1.0–1.5 = Review &nbsp;|&nbsp; &gt;1.5 = <strong>CRITICAL ALERT</strong>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AGENCY MONITOR ══ -->
+<div id="pane-agencies" class="pane">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kl">Active agencies</div><div class="kv">52</div><div class="ks">Bengaluru South Zone</div></div>
+    <div class="kpi green"><div class="kl">Clean agencies</div><div class="kv">48</div><div class="ks">Score &lt; 0.5</div></div>
+    <div class="kpi amber"><div class="kl">Under watch</div><div class="kv">3</div><div class="ks">Score 0.5–1.5</div></div>
+    <div class="kpi red"><div class="kl">Flagged — act now</div><div class="kv">1</div><div class="ks">Score &gt; 1.5</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Agency performance dashboard <span class="badge bt">Live</span></div>
+    <table class="tbl">
+      <thead><tr><th>Agency</th><th>Location</th><th>Dispensed</th><th>Aadhar %</th><th>Anomaly score</th><th>Status</th></tr></thead>
+      <tbody id="agency-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ CBG MARKETPLACE ══ -->
+<div id="pane-cbg" class="pane">
+  <div class="kpi-row">
+    <div class="kpi green"><div class="kl">CBG producers</div><div class="kv">23</div><div class="ks">Bengaluru + surrounds</div></div>
+    <div class="kpi"><div class="kl">Total capacity</div><div class="kv">4.8T</div><div class="ks">Per day</div></div>
+    <div class="kpi amber"><div class="kl">Platform GMV</div><div class="kv">₹38L</div><div class="ks">This month</div></div>
+    <div class="kpi green"><div class="kl">CO₂ avoided</div><div class="kv">13.9T</div><div class="ks">This month</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Available CBG producers <span class="badge bg">23 live</span></div>
+    <div class="cbg-grid" id="cbg-grid"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">LPG vs CBG — price comparison</div>
+    <div class="prog"><div class="prog-head"><span class="prog-lbl">LPG private market (Bengaluru)</span><span class="prog-val" style="color:var(--red)">₹3,350</span></div><div class="prog-track"><div class="prog-fill" style="width:100%;background:var(--red)"></div></div></div>
+    <div class="prog"><div class="prog-head"><span class="prog-lbl">LPG official domestic</span><span class="prog-val" style="color:var(--amber)">₹920</span></div><div class="prog-track"><div class="prog-fill" style="width:27%;background:var(--amber)"></div></div></div>
+    <div class="prog"><div class="prog-head"><span class="prog-lbl">LPG commercial (19kg)</span><span class="prog-val" style="color:var(--amber)">₹3,152</span></div><div class="prog-track"><div class="prog-fill" style="width:94%;background:var(--amber)"></div></div></div>
+    <div class="prog"><div class="prog-head"><span class="prog-lbl">CBG via GasChain (14kg equiv)</span><span class="prog-val" style="color:var(--green)">₹756</span></div><div class="prog-track"><div class="prog-fill" style="width:22%;background:var(--green)"></div></div></div>
+    <div class="prog"><div class="prog-head"><span class="prog-lbl">CBG commercial cylinder (19kg)</span><span class="prog-val" style="color:var(--green)">₹2,000</span></div><div class="prog-track"><div class="prog-fill" style="width:59%;background:var(--teal)"></div></div></div>
+    <div style="font-size:11px;color:var(--gray);margin-top:8px">Hotels and restaurants save ₹1,152 per commercial cylinder switching from LPG to GasChain CBG (37% saving).</div>
+  </div>
+</div>
+
+<!-- ══ STP BIOGAS ══ -->
+<div id="pane-stp" class="pane">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kl">Bengaluru STPs</div><div class="kv">35+</div><div class="ks">BWSSB operated</div></div>
+    <div class="kpi green"><div class="kl">Daily sewage</div><div class="kv">1,400</div><div class="ks">MLD treated</div></div>
+    <div class="kpi amber"><div class="kl">CBG potential</div><div class="kv">13,140</div><div class="ks">kg/day untapped</div></div>
+    <div class="kpi"><div class="kl">Revenue potential</div><div class="kv">₹3.7Cr</div><div class="ks">per month</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Bengaluru STP opportunity map <span class="badge ba">No competitor here</span></div>
+    <div id="stp-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Why STP beats MSW as feedstock</div>
+    <div style="font-size:12px;color:var(--gray);line-height:1.7">
+      <strong style="color:var(--navy)">India CBG potential by source:</strong><br>
+      🐄 Cattle dung — 25 MMT/yr<br>
+      🌾 Agricultural residue — 20 MMT/yr &nbsp;<em>(seasonal risk)</em><br>
+      🏭 <strong style="color:var(--teal)">STP sewage sludge — 10 MMT/yr</strong> &nbsp;← <strong>Double MSW. Zero cost. Year-round.</strong><br>
+      🗑️ Municipal solid waste — 5 MMT/yr<br>
+      🍬 Press mud — 2 MMT/yr<br><br>
+      <strong style="color:var(--navy)">The STP advantage:</strong> The feedstock comes TO you. Cities generate sewage 365 days a year regardless of harvest or weather. Zero procurement cost. BWSSB pays you a tipping fee to process their sludge. No competitor is doing STP-to-commercial-cylinder in Karnataka today.
+    </div>
+  </div>
+</div>
+
+<!-- ══ DIGITAL TWIN ══ -->
+<div id="pane-twin" class="pane">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kl">Cylinders tracked (national)</div><div class="kv">84.2L</div><div class="ks">This month, all OMCs</div></div>
+    <div class="kpi green"><div class="kl">Subsidy verified</div><div class="kv">₹412Cr</div><div class="ks">This quarter</div></div>
+    <div class="kpi amber"><div class="kl">CBG blend</div><div class="kv">6.8%</div><div class="ks">Target: 10% by 2027</div></div>
+    <div class="kpi red"><div class="kl">Leakage stopped</div><div class="kv">₹38Cr</div><div class="ks">Ghost + duplicate blocked</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">District demand index — Karnataka</div>
+    <div id="district-bars"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Energy dependency reduction tracker</div>
+    <div class="prog"><div class="prog-head"><span class="prog-lbl">LPG import dependency</span><span class="prog-val" style="color:var(--red)">88%</span></div><div class="prog-track"><div class="prog-fill" style="width:88%;background:var(--red)"></div></div></div>
+    <div class="prog"><div class="prog-head"><span class="prog-lbl">CBG domestic supply</span><span class="prog-val" style="color:var(--green)">6.8%</span></div><div class="prog-track"><div class="prog-fill" style="width:6.8%;background:var(--green)"></div></div></div>
+    <div class="prog"><div class="prog-head"><span class="prog-lbl">PNG piped coverage</span><span class="prog-val" style="color:var(--teal)">5.2%</span></div><div class="prog-track"><div class="prog-fill" style="width:5.2%;background:var(--teal)"></div></div></div>
+    <div style="background:var(--grn-lt);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:11px;color:var(--green)">
+      📈 At current CBG growth rate of +0.8% MoM, India reaches 10% indigenous supply target by Q3 2027 — <strong>on track.</strong>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LIVE LOG ══ -->
+<div id="pane-log" class="pane">
+  <div class="card">
+    <div class="card-title">Transaction log — real time <span class="badge bg" id="log-count">0 entries</span></div>
+    <div class="log" id="live-log"><div style="color:rgba(255,255,255,0.3)">Waiting for transactions... run the simulator to generate log entries.</div></div>
+  </div>
+</div>
+
+</div><!-- end main -->
+
+<script>
+// ── STATE ──
+let approved = 0, blocked = 0, flags = 0;
+let subsidyProtected = 0;
+const logs = [];
+
+// ── NAVIGATION ──
+function sw(id, btn) {
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+  document.getElementById('pane-' + id).classList.add('on');
+  btn.classList.add('on');
+}
+
+// ── TRANSACTION SCENARIOS ──
+const scenarios = {
+  normal: {
+    consumer: { name: "Rajesh Kumar", quota_used: 1, quota_max: 2, category: "GENERAL", connections: 1 },
+    agency_score: 0.08,
+    delivery_type: "RESIDENTIAL",
+    dist_km: 0.3,
+    time_hour: 10,
+    result: {
+      approved: true,
+      score: 0.08,
+      flags: [],
+      reason: null,
+    }
+  },
+  quota: {
+    consumer: { name: "Priya Sharma", quota_used: 2, quota_max: 2, category: "PMUY", connections: 1 },
+    agency_score: 0.05,
+    delivery_type: "RESIDENTIAL",
+    dist_km: 0.1,
+    time_hour: 14,
+    result: {
+      approved: false,
+      score: 2.0,
+      flags: ["QUOTA_BREACH: Consumer has used 2/2 cylinders this month"],
+      reason: "Quota exhausted — only 2 cylinders allowed per month",
+    }
+  },
+  duplicate: {
+    consumer: { name: "Abdul Rehman", quota_used: 0, quota_max: 2, category: "GENERAL", connections: 2 },
+    agency_score: 0.12,
+    delivery_type: "RESIDENTIAL",
+    dist_km: 0.5,
+    time_hour: 11,
+    result: {
+      approved: false,
+      score: 1.8,
+      flags: ["DUPLICATE_AADHAR: 2 active connections found for same Aadhar token"],
+      reason: "Duplicate Aadhar — 2 active connections detected",
+    }
+  },
+  commercial: {
+    consumer: { name: "Suresh Babu", quota_used: 1, quota_max: 2, category: "GENERAL", connections: 1 },
+    agency_score: 0.71,
+    delivery_type: "COMMERCIAL",
+    dist_km: 3.2,
+    time_hour: 15,
+    result: {
+      approved: false,
+      score: 1.68,
+      flags: [
+        "COMMERCIAL_DIVERSION: Domestic consumer receiving cylinder at commercial address",
+        "ADDRESS_MISMATCH: Delivery 3.2km from registered address"
+      ],
+      reason: "Suspected domestic-to-commercial diversion",
+    }
+  },
+  hoarding: {
+    consumer: { name: "N/A — bulk dispense", quota_used: 0, quota_max: 2, category: "GENERAL", connections: 1 },
+    agency_score: 1.94,
+    delivery_type: "RESIDENTIAL",
+    dist_km: 0.1,
+    time_hour: 3,
+    result: {
+      approved: false,
+      score: 2.4,
+      flags: [
+        "EXCESS_DISPENSE: 48 cyl/2hr vs baseline 9.2 (z=4.1)",
+        "TIME_ANOMALY: 48 cylinders dispensed at 3am outside business hours",
+        "LOW_AADHAR_COMPLIANCE: 34% scan rate vs required 85%"
+      ],
+      reason: "Hoarding pattern detected — agency suspended pending investigation",
+    }
+  },
+  ghost: {
+    consumer: { name: "Meena Reddy", quota_used: 0, quota_max: 2, category: "GENERAL", connections: 1 },
+    agency_score: 0.3,
+    delivery_type: "RESIDENTIAL",
+    dist_km: 0.2,
+    time_hour: 12,
+    result: {
+      approved: false,
+      score: 2.0,
+      flags: ["CYLINDER_GHOST: Cylinder #CYL-28471 appeared at 3 agencies in 4 hours"],
+      reason: "Cylinder journey impossible — likely QR code cloned",
+    }
+  },
+};
+
+// ── RUN CHECK ──
+function runCheck() {
+  const type = document.getElementById('consumer-type').value;
+  const agencyVal = document.getElementById('agency-select').value;
+  const cylType = document.getElementById('cyl-type').value;
+  const sc = scenarios[type];
+
+  // Simulate processing delay
+  const btn = document.querySelector('.sim-btn');
+  btn.textContent = '⏳ Verifying Aadhar + checking anomalies...';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    btn.textContent = '▶ Verify Transaction — Scan & Check';
+    btn.disabled = false;
+
+    const box = document.getElementById('result-box');
+    const icon = document.getElementById('result-icon');
+    const details = document.getElementById('result-details');
+    const flagsEl = document.getElementById('result-flags');
+
+    box.style.display = 'block';
+    box.className = 'result ' + (sc.result.approved ? 'approved' : 'blocked');
+
+    const severity = sc.result.score >= 1.5 ? 'CRITICAL' : sc.result.score >= 1.0 ? 'HIGH' : sc.result.score >= 0.5 ? 'MEDIUM' : 'LOW';
+    const sevColor = sc.result.score >= 1.5 ? '#B91C1C' : sc.result.score >= 1.0 ? '#D97706' : '#15803D';
+
+    icon.innerHTML = sc.result.approved
+      ? `✅ <span style="color:var(--green)">TRANSACTION APPROVED</span>`
+      : `🚨 <span style="color:var(--red)">TRANSACTION BLOCKED</span>`;
+
+    const cylPrices = { lpg_domestic: '₹920', lpg_commercial: '₹3,152', cbg: '₹756' };
+
+    details.innerHTML = `
+      <div class="result-row"><span>Consumer</span><span><strong>${sc.consumer.name}</strong></span></div>
+      <div class="result-row"><span>Aadhar verified</span><span>${sc.result.approved || type === 'commercial' ? '✅ Yes' : '❌ Blocked'}</span></div>
+      <div class="result-row"><span>Monthly quota</span><span>${sc.consumer.quota_used} / ${sc.consumer.quota_max} used</span></div>
+      <div class="result-row"><span>Active connections</span><span>${sc.consumer.connections}</span></div>
+      <div class="result-row"><span>Cylinder price</span><span>${cylPrices[cylType]}</span></div>
+      <div class="result-row"><span>Anomaly score</span><span style="color:${sevColor};font-weight:700;font-family:monospace">${sc.result.score.toFixed(2)} — ${severity}</span></div>
+      ${sc.result.reason ? `<div class="result-row"><span>Block reason</span><span style="color:var(--red)">${sc.result.reason}</span></div>` : ''}
+    `;
+
+    flagsEl.innerHTML = sc.result.flags.length
+      ? '<div style="font-size:11px;font-weight:600;margin-bottom:4px;margin-top:8px">Flags raised:</div>' + sc.result.flags.map(f => `<code class="flag">⚠ ${f}</code>`).join('')
+      : '';
+
+    // Update counters
+    if (sc.result.approved) { approved++; document.getElementById('cnt-approved').textContent = approved; }
+    else { blocked++; document.getElementById('cnt-blocked').textContent = blocked; }
+    if (sc.result.flags.length) { flags++; document.getElementById('cnt-flags').textContent = flags; }
+    if (!sc.result.approved) {
+      subsidyProtected += 303;  // avg subsidy per cylinder
+      document.getElementById('cnt-subsidy').textContent = '₹' + (subsidyProtected).toLocaleString('en-IN');
+    }
+
+    // Add to log
+    addLog(sc.result.approved, sc.consumer.name, sc.result.score, sc.result.flags);
+  }, 1200);
+}
+
+// ── LOG ──
+function addLog(ok, name, score, flagList) {
+  const now = new Date();
+  const time = now.toTimeString().slice(0, 8);
+  const entry = { time, ok, name, score, flags: flagList };
+  logs.unshift(entry);
+
+  const el = document.getElementById('live-log');
+  const cls = ok ? 'log-ok' : 'log-err';
+  const icon = ok ? '✓' : '✗';
+  const flagStr = flagList.length ? ` | ${flagList[0].split(':')[0]}` : '';
+
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  div.innerHTML = `<span class="log-time">${time}</span><span class="${cls}">${icon} ${name} — score:${score.toFixed(2)}${flagStr}</span>`;
+  el.insertBefore(div, el.firstChild);
+
+  // Remove placeholder text
+  el.querySelectorAll('div[style]').forEach(d => d.remove());
+
+  document.getElementById('log-count').textContent = logs.length + ' entries';
+}
+
+// ── AGENCY TABLE ──
+const agencies = [
+  { name: "Bangalore Gas Agency", loc: "Koramangala", dispensed: 794, aadhar: 98, score: 0.02, status: 'p-ok', label: 'Clean' },
+  { name: "Sri Venkatesh LPG", loc: "Jayanagar", dispensed: 621, aadhar: 96, score: 0.08, status: 'p-ok', label: 'Clean' },
+  { name: "KR Puram Fuel Hub", loc: "KR Puram", dispensed: 378, aadhar: 94, score: 0.09, status: 'p-ok', label: 'Clean' },
+  { name: "Whitefield LPG Centre", loc: "Whitefield", dispensed: 288, aadhar: 99, score: 0.04, status: 'p-ok', label: 'Clean' },
+  { name: "HSR Layout Gas", loc: "HSR Layout", dispensed: 712, aadhar: 97, score: 0.11, status: 'p-ok', label: 'Clean' },
+  { name: "Majestic Gas Point", loc: "Chickpet", dispensed: 419, aadhar: 78, score: 0.71, status: 'p-warn', label: 'Review' },
+  { name: "Electronic City LPG", loc: "Electronic City", dispensed: 541, aadhar: 91, score: 0.22, status: 'p-ok', label: 'Clean' },
+  { name: "City Gas Shoppe", loc: "RT Nagar", dispensed: 462, aadhar: 34, score: 1.94, status: 'p-flag', label: '🚨 Flagged' },
+];
+
+const tbody = document.getElementById('agency-table');
+agencies.forEach(a => {
+  const scoreColor = a.score >= 1.5 ? '#B91C1C' : a.score >= 0.5 ? '#D97706' : '#15803D';
+  const pct = Math.min(100, (a.score / 2) * 100);
+  tbody.innerHTML += `<tr>
+    <td><strong>${a.name}</strong></td>
+    <td>${a.loc}</td>
+    <td style="font-family:monospace">${a.dispensed}</td>
+    <td style="font-family:monospace;color:${a.aadhar < 80 ? '#B91C1C' : '#15803D'}">${a.aadhar}%</td>
+    <td>
+      <div class="score-wrap">
+        <div class="score-track"><div class="score-fill" style="width:${pct}%;background:${scoreColor}"></div></div>
+        <div class="score-num" style="color:${scoreColor}">${a.score}</div>
+      </div>
+    </td>
+    <td><span class="pill ${a.status}">${a.label}</span></td>
+  </tr>`;
+});
+
+// ── CBG GRID ──
+const cbgProducers = [
+  { name: "GreenGas CBG Unit", type: "Agricultural waste", loc: "Anekal", kg: 800, price: 54, avail: "Available", cls: "av-ok" },
+  { name: "BengaluruBio Plant", type: "Municipal solid waste", loc: "Mandur", kg: 1200, price: 56, avail: "Available", cls: "av-ok" },
+  { name: "IndoGas CBG", type: "Food processing waste", loc: "Peenya", kg: 650, price: 55, avail: "Available", cls: "av-ok" },
+  { name: "Farmer's Gas Coop", type: "Gobar gas collective", loc: "Kanakapura", kg: 240, price: 50, avail: "Available", cls: "av-ok" },
+  { name: "Namma Biogas", type: "Gobar gas", loc: "Doddaballapur", kg: 320, price: 52, avail: "Low stock", cls: "av-low" },
+];
+const cbgGrid = document.getElementById('cbg-grid');
+cbgProducers.forEach(p => {
+  cbgGrid.innerHTML += `<div class="cbg-card">
+    <div class="cbg-name">${p.name}</div>
+    <div class="cbg-type">${p.type} · ${p.loc}</div>
+    <div class="cbg-price">₹${p.price}/kg</div>
+    <div class="cbg-cap">${p.kg} kg capacity/day</div>
+    <span class="cbg-avail ${p.cls}">${p.avail}</span>
+  </div>`;
+});
+
+// ── STP LIST ──
+const stps = [
+  { name: "Vrishabhavathi Valley STP", op: "BWSSB", mld: 440, cbg: 4800, cyl: 7578, status: "Available — biogas currently used for electricity only", urgency: "ba" },
+  { name: "K&C Valley STP (Koramangala)", op: "BWSSB", mld: 60, cbg: 650, cyl: 1026, status: "Under negotiation", urgency: "bg" },
+  { name: "Hebbal Valley STP", op: "BWSSB", mld: 60, cbg: 650, cyl: 1026, status: "Available — biogas flared", urgency: "ba" },
+  { name: "9 New BWSSB STPs (2026)", op: "BWSSB", mld: 535, cbg: 5800, cyl: 9157, status: "Under construction — PPP tender open", urgency: "bt" },
+];
+const stpList = document.getElementById('stp-list');
+stps.forEach(s => {
+  stpList.innerHTML += `<div class="stp-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div class="stp-name">${s.name}</div>
+        <div class="stp-meta">Operator: ${s.op} · ${s.mld} MLD capacity</div>
+      </div>
+      <span class="badge b${s.urgency}">${s.status}</span>
+    </div>
+    <div class="stp-nums">
+      <div class="stp-num"><span>${s.cbg.toLocaleString('en-IN')}</span>kg CBG/day potential</div>
+      <div class="stp-num"><span>${s.cyl.toLocaleString('en-IN')}</span>commercial cylinders/month</div>
+      <div class="stp-num"><span style="color:var(--teal)">₹${(s.cyl * 2000 / 100000).toFixed(1)} Cr</span>revenue/month</div>
+    </div>
+  </div>`;
+});
+
+// ── DISTRICT BARS ──
+const districts = [
+  { d: "Bengaluru Urban", v: 92, cbg: 3.55 }, { d: "Mysuru", v: 65, cbg: 4.74 },
+  { d: "Mangaluru", v: 58, cbg: 4.81 }, { d: "Hubballi", v: 47, cbg: 3.92 },
+  { d: "Belagavi", v: 42, cbg: 2.10 }, { d: "Shivamogga", v: 38, cbg: 1.80 },
+  { d: "Bengaluru Rural", v: 38, cbg: 6.20 }, { d: "Tumkur", v: 31, cbg: 1.20 },
+];
+const dBar = document.getElementById('district-bars');
+districts.forEach(d => {
+  const col = d.v >= 70 ? 'var(--teal)' : d.v >= 50 ? 'var(--amber)' : 'var(--gray)';
+  dBar.innerHTML += `<div class="prog">
+    <div class="prog-head">
+      <span class="prog-lbl">${d.d}</span>
+      <span class="prog-val" style="color:${col}">Index: ${d.v} · CBG: ${d.cbg}%</span>
+    </div>
+    <div class="prog-track"><div class="prog-fill" style="width:${d.v}%;background:${col}"></div></div>
+  </div>`;
+});
+</script>
+</body>
+</html>
